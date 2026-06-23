@@ -1,0 +1,31 @@
+[package]
+name = "gre"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+authors = ["tappunk"]
+description = "A super-fast multi-repo git recap for AI agents and speed-obsessed humans."
+repository = "https://github.com/tappunk/gre"
+license = "MIT"
+readme = "README.md"
+keywords = ["git", "cli", "workflow", "developer-tools", "automation"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+color-eyre = "0.6"
+dirs = "6"
+git2 = { version = "0.19", default-features = false, features = [
+  "vendored-libgit2",
+] }
+rayon = "1.11"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
