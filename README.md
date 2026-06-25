@@ -7,106 +7,102 @@
 
 # gre
 
-A super fast multi repo git recap for AI agents and speed obsessed humans.
+**Parallel git status aggregator for multiple repositories.** Human and JSON output for agent automation.
 
-Run one command:
+[Installation](#installation) • [Quick Start](#quick-start) • [Usage](#usage) • [Config](#config) • [Output Formats](#output-formats)
+
+## Features
+
+- **Parallel inspection** — rayon-powered concurrent repo scanning across all configured repositories
+- **Action-aware sorting** — repos sorted by priority: conflicts → dirty → behind → ahead → clean
+- **Focus line** — shows actionable repos and how many more need attention
+- **Machine readable** — stable JSON output with timing stats (elapsed, avg, p95) for automation pipelines
+- **Non-interactive** — no prompts, no TUI. Just output. Built for speed and scripts.
+- **Configurable** — TOML config with simple path lists or named repo entries
+- **Shell agnostic** — works in any terminal, pipe JSON to agents or other tools
+
+## Installation
+
+### Homebrew
 
 ```bash
-gre
-```
-
-No prompts. No interactive mode. No extra setup after config.
-
-## Install
-
-```bash
-cargo install gre
-# or
 brew install tappunk/gre/gre
 ```
 
-## CLI
+### Cargo
 
-```text
-gre [--config PATH] [--json] [init [--force]]
+```bash
+cargo install gre
 ```
 
-Minimal contract:
+## Quick Start
 
-- `gre` prints the default human recap.
-- `gre --json` prints machine-readable output for agents/scripts.
-- `gre init` writes `~/.config/gre/config.toml`.
-- `gre init --force` overwrites an existing config.
-- `gre --config PATH` uses an explicit config path.
+```bash
+gre init                     # Create config file
+gre                          # Show status across all configured repos
+```
+
+## Usage
+
+```bash
+gre                          # Show human-readable status
+gre --json                   # Output JSON for agents and scripts
+gre --config PATH            # Use an explicit config file
+gre --help                   # Show help
+gre init                     # Create default config
+gre init --force             # Overwrite existing config
+```
 
 ## Config
 
-Default path:
+Default path: `~/.config/gre/config.toml`
 
-```bash
-~/.config/gre/config.toml
-```
-
-Example config:
+### Simple — just paths
 
 ```toml
 paths = [
   "~/src/gre",
   "~/src/muthr",
+  "~/src/utmd",
 ]
-
-[output]
-default_json = false
 ```
 
-Alternative repo shapes are also supported:
-
-```toml
-repos = ["~/src/gre", "~/src/muthr"]
-```
+### Named — when you want a different label than the directory
 
 ```toml
 [[repos]]
 name = "gre"
 path = "~/src/gre"
+
+[[repos]]
+name = "muthr"
+path = "~/src/muthr"
 ```
 
-## Human Output
+## Output Formats
 
-`gre` sorts repos by action priority: conflicts -> dirty -> behind -> ahead -> clean.
+### Human Output
 
-`ahead`/`behind` is local-tracking based. `gre` does not fetch remotes.
-Run `git fetch` in a repo to refresh tracking refs before running `gre`.
+gre sorts repos by action priority: conflicts → dirty → behind → ahead → clean. The summary line includes timing (elapsed, average) and a focus line showing which repos need attention.
 
-The summary line includes run timing (`time`, `avg`) to track command speed.
-
-Columns:
-
-```text
-repo  branch  sync  state  next  last_commit  path
+```
+repos:3  dirty:1  behind:1  ahead:1  time:12ms  avg:4.00ms  focus:gre:commit-or-stash,muthr:pull,utmd:none
+repo  branch  +sync  state  next  last_commit  path
+gre   main     +1 -0  dirty s:0 u:2 ?:0 c:0  commit-or-stash  8a3b2f1 tune output (2 hours ago)  ~/src/gre
 ```
 
-`next` values:
+**Next action values:**
 
-- `resolve-conflicts`
-- `commit-or-stash`
-- `pull`
-- `push`
-- `sync`
-- `none`
+- `resolve-conflicts` — has merge conflicts
+- `commit-or-stash` — has unstaged or untracked changes
+- `pull` — behind remote
+- `push` — ahead of remote
+- `sync` — ahead and behind
+- `none` — clean
 
-## JSON Output
+### JSON Output
 
-`gre --json` is stable for automation and includes:
-
-- `schema_version`
-- `summary` counts (`configured_total`, `succeeded_total`, `failed_total`, `total`)
-- `summary` repo state (`dirty`, `behind`, `ahead`)
-- `summary` timing (`elapsed_ms`, `avg_repo_ms`)
-- `summary` tail latency (`p95_repo_ms`)
-- `repos` array
-
-Example:
+`--json` returns a stable schema for automation and agent pipelines:
 
 ```json
 {
@@ -114,25 +110,23 @@ Example:
   "summary": {
     "total": 2,
     "dirty": 1,
-    "behind": 0,
-    "ahead": 1
+    "ahead": 1,
+    "elapsed_ms": 42,
+    "p95_repo_ms": 38.2
   },
   "repos": [
     {
       "name": "gre",
-      "path": "/Users/alice/src/gre",
       "branch": "main",
       "ahead": 1,
       "behind": 0,
       "staged": 0,
-      "unstaged": 2,
-      "untracked": 0,
-      "conflicts": 0,
-      "clean": false,
-      "last_hash": "abcd123",
-      "last_subject": "tune output",
-      "last_relative": "2 hours ago"
+      "unstaged": 2
     }
   ]
 }
 ```
+
+Full output includes additional repo fields (`last_hash`, `last_subject`, `last_relative`, `untracked`, `conflicts`, `clean`) and timing stats (`avg_repo_ms`, `failed_total`).
+
+**Note:** gre does not fetch remotes. Run `git fetch` in your repos before running gre to refresh tracking refs.
