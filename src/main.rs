@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -19,7 +19,7 @@ const JSON_SCHEMA_VERSION: &str = "1";
 struct Cli {
     #[arg(long, global = true)]
     config: Option<PathBuf>,
-    #[arg(long, global = true)]
+    #[arg(long)]
     json: bool,
     #[command(subcommand)]
     command: Option<Commands>,
@@ -72,8 +72,8 @@ struct RepoReport {
     name: String,
     path: PathBuf,
     branch: String,
-    ahead: i32,
-    behind: i32,
+    ahead: u64,
+    behind: u64,
     staged: usize,
     unstaged: usize,
     untracked: usize,
@@ -88,8 +88,8 @@ struct JsonRepoReport {
     name: String,
     path: String,
     branch: String,
-    ahead: i32,
-    behind: i32,
+    ahead: u64,
+    behind: u64,
     staged: usize,
     unstaged: usize,
     untracked: usize,
@@ -263,8 +263,26 @@ fn load_repositories(config_path: &Path) -> Result<(Vec<RepoConfig>, Option<Outp
         }));
     }
 
-    let mut seen = HashSet::new();
-    repositories.retain(|repository| seen.insert(repository.path.clone()));
+    let mut kept: HashMap<PathBuf, String> = HashMap::new();
+    repositories.retain(|repository| {
+        if kept
+            .insert(repository.path.clone(), repository.name.clone())
+            .is_some()
+        {
+            let kept_name = kept
+                .get(&repository.path)
+                .map(String::as_str)
+                .unwrap_or("?");
+            eprintln!(
+                "warning: duplicate path '{}' in config, keeping name '{}'",
+                repository.path.display(),
+                kept_name
+            );
+            false
+        } else {
+            true
+        }
+    });
     Ok((repositories, output))
 }
 
@@ -325,13 +343,23 @@ fn inspect_repository(repository: &RepoConfig) -> Result<RepoReport> {
     let repo = Repository::open(&repository.path)
         .wrap_err_with(|| format!("failed to open git repo {}", repository.path.display()))?;
 
-    let head_ref = repo.head().ok();
+    if repo.is_bare() {
+        return Err(eyre!(
+            "repository '{}' is bare (bare repos are not supported): {}",
+            repository.name,
+            repository.path.display()
+        ));
+    }
 
-    let branch = head_ref
-        .as_ref()
-        .and_then(|value| value.shorthand())
-        .unwrap_or("detached")
-        .to_string();
+    let head_ref = repo.head().wrap_err_with(|| {
+        format!(
+            "repository '{}' at {}: failed to read HEAD",
+            repository.name,
+            repository.path.display()
+        )
+    })?;
+
+    let branch = head_ref.shorthand().unwrap_or("detached").to_string();
 
     let mut status_opts = StatusOptions::new();
     status_opts
@@ -355,6 +383,7 @@ fn inspect_repository(repository: &RepoConfig) -> Result<RepoReport> {
 
         if status.is_conflicted() {
             conflicts += 1;
+            continue;
         }
 
         if status.is_wt_new() {
@@ -381,8 +410,8 @@ fn inspect_repository(repository: &RepoConfig) -> Result<RepoReport> {
         }
     }
 
-    let head_oid = head_ref.as_ref().and_then(|value| value.target());
-    let (ahead, behind) = if let (Some(oid), Ok(local_branch)) =
+    let head_oid = head_ref.target();
+    let (ahead, behind): (u64, u64) = if let (Some(oid), Ok(local_branch)) =
         (head_oid, repo.find_branch(&branch, BranchType::Local))
     {
         if let Ok(upstream_branch) = local_branch.upstream() {
@@ -390,7 +419,18 @@ fn inspect_repository(repository: &RepoConfig) -> Result<RepoReport> {
                 if oid == upstream_oid {
                     (0, 0)
                 } else {
-                    repo.graph_ahead_behind(oid, upstream_oid).unwrap_or((0, 0))
+                    {
+                        let (a, b) =
+                            repo.graph_ahead_behind(oid, upstream_oid)
+                                .wrap_err_with(|| {
+                                    format!(
+                                        "failed to compute ahead/behind for '{}' at {}",
+                                        repository.name,
+                                        repository.path.display()
+                                    )
+                                })?;
+                        (a as u64, b as u64)
+                    }
                 }
             } else {
                 (0, 0)
@@ -422,8 +462,8 @@ fn inspect_repository(repository: &RepoConfig) -> Result<RepoReport> {
         name: repository.name.clone(),
         path: repository.path.clone(),
         branch,
-        ahead: ahead as i32,
-        behind: behind as i32,
+        ahead,
+        behind,
         staged,
         unstaged,
         untracked,
@@ -726,7 +766,7 @@ fn print_json(
         configured_total,
         succeeded_total: reports.len(),
         failed_total,
-        total: reports.len(),
+        total: configured_total,
         dirty: reports.iter().filter(|report| !is_clean(report)).count(),
         behind: reports.iter().filter(|report| report.behind > 0).count(),
         ahead: reports.iter().filter(|report| report.ahead > 0).count(),
