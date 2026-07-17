@@ -355,7 +355,11 @@ fn inspect_repository(repository: &RepoConfig) -> Result<RepoReport> {
         )
     })?;
 
-    let branch = head_ref.shorthand().unwrap_or("detached").to_string();
+    let branch = if head_ref.is_branch() {
+        head_ref.shorthand().unwrap_or("detached").to_string()
+    } else {
+        "detached".to_string()
+    };
 
     let mut status_opts = StatusOptions::new();
     status_opts
