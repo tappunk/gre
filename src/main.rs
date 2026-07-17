@@ -190,7 +190,7 @@ fn run() -> Result<()> {
             failed_total,
         )?;
     } else {
-        print_human(&ok_reports, elapsed);
+        print_human(&ok_reports, elapsed, &ok_timings);
     }
 
     if had_failure {
@@ -514,7 +514,11 @@ fn format_relative_time(commit_unix_seconds: i64) -> String {
     format!("{} year{} ago", years, if years == 1 { "" } else { "s" })
 }
 
-fn print_human(reports: &[RepoReport], elapsed: std::time::Duration) {
+fn print_human(
+    reports: &[RepoReport],
+    elapsed: std::time::Duration,
+    ok_timings: &[std::time::Duration],
+) {
     const REPO_COL_MIN: usize = 18;
     const REPO_COL_MAX: usize = 28;
     const BRANCH_COL_MIN: usize = 14;
@@ -538,7 +542,7 @@ fn print_human(reports: &[RepoReport], elapsed: std::time::Duration) {
 
     let focus = build_focus_line(&sorted);
     let elapsed_ms = elapsed.as_millis() as u64;
-    let avg_repo_ms = average_repo_ms(total, elapsed);
+    let avg_repo_ms = average_repo_ms(ok_timings);
     let repo_col = column_width(
         &sorted,
         "repo",
@@ -712,13 +716,16 @@ fn format_path_for_display(path: &Path) -> String {
     text
 }
 
-fn average_repo_ms(total: usize, elapsed: std::time::Duration) -> f64 {
-    if total == 0 {
+fn average_repo_ms(samples: &[std::time::Duration]) -> f64 {
+    if samples.is_empty() {
         return 0.0;
     }
 
-    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
-    elapsed_ms / total as f64
+    samples
+        .iter()
+        .map(|d| d.as_secs_f64() * 1000.0)
+        .sum::<f64>()
+        / samples.len() as f64
 }
 
 fn percentile_repo_ms(samples: &[std::time::Duration], percentile: f64) -> f64 {
@@ -773,7 +780,7 @@ fn print_json(
         behind: reports.iter().filter(|report| report.behind > 0).count(),
         ahead: reports.iter().filter(|report| report.ahead > 0).count(),
         elapsed_ms: elapsed.as_millis() as u64,
-        avg_repo_ms: average_repo_ms(reports.len(), elapsed),
+        avg_repo_ms: average_repo_ms(ok_timings),
         p95_repo_ms: percentile_repo_ms(ok_timings, 0.95),
     };
 
