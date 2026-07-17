@@ -9,7 +9,7 @@ use git2::{BranchType, Repository, StatusOptions};
 use rayon::prelude::*;
 use serde::Deserialize;
 
-const JSON_SCHEMA_VERSION: &str = "2";
+const JSON_SCHEMA_VERSION: &str = "3";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -115,11 +115,19 @@ struct JsonSummary {
     p95_repo_ms: f64,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+struct JsonFailedRepo {
+    name: String,
+    path: String,
+    error: String,
+}
+
 #[derive(Debug, serde::Serialize)]
 struct JsonOutput {
     schema_version: &'static str,
     summary: JsonSummary,
     repos: Vec<JsonRepoReport>,
+    failed: Vec<JsonFailedRepo>,
 }
 
 fn main() {
@@ -164,16 +172,22 @@ fn run() -> Result<()> {
     let mut had_failure = false;
     let mut failed_total = 0usize;
 
-    for (report, elapsed_repo) in reports {
+    let mut failed_repos = Vec::new();
+    for (repo_cfg, (report, elapsed_repo)) in repositories.iter().zip(reports.iter()) {
         match report {
             Ok(value) => {
-                ok_timings.push(elapsed_repo);
-                ok_reports.push(value);
+                ok_timings.push(*elapsed_repo);
+                ok_reports.push(value.clone());
             }
             Err(error) => {
                 had_failure = true;
                 failed_total += 1;
                 eprintln!("error: {error}");
+                failed_repos.push(JsonFailedRepo {
+                    name: repo_cfg.name.clone(),
+                    path: repo_cfg.path.display().to_string(),
+                    error: error.to_string(),
+                });
             }
         }
     }
@@ -188,6 +202,7 @@ fn run() -> Result<()> {
             &ok_timings,
             repositories.len(),
             failed_total,
+            &failed_repos,
         )?;
     } else {
         print_human(&ok_reports, elapsed, &ok_timings);
@@ -745,6 +760,7 @@ fn print_json(
     ok_timings: &[std::time::Duration],
     configured_total: usize,
     failed_total: usize,
+    failed_repos: &[JsonFailedRepo],
 ) -> Result<()> {
     let rows: Vec<JsonRepoReport> = reports
         .iter()
@@ -784,6 +800,7 @@ fn print_json(
         schema_version: JSON_SCHEMA_VERSION,
         summary,
         repos: rows,
+        failed: failed_repos.to_vec(),
     };
 
     let output =
