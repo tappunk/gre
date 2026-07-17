@@ -822,8 +822,6 @@ fn print_json(
     io::stdout()
         .write_all(b"\n")
         .wrap_err("failed to write output to stdout")?;
-    io::stdout()
-        .flush()
-        .wrap_err("failed to flush stdout")?;
+    io::stdout().flush().wrap_err("failed to flush stdout")?;
     Ok(())
 }
