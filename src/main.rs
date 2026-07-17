@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -205,7 +206,7 @@ fn run() -> Result<()> {
             &failed_repos,
         )?;
     } else {
-        print_human(&ok_reports, elapsed, &ok_timings);
+        print_human(&ok_reports, elapsed, &ok_timings)?;
     }
 
     if had_failure {
@@ -529,7 +530,7 @@ fn print_human(
     reports: &[RepoReport],
     elapsed: std::time::Duration,
     ok_timings: &[std::time::Duration],
-) {
+) -> Result<()> {
     const REPO_COL_MIN: usize = 18;
     const REPO_COL_MAX: usize = 28;
     const BRANCH_COL_MIN: usize = 14;
@@ -569,11 +570,16 @@ fn print_human(
         BRANCH_COL_MAX,
     );
 
-    println!(
+    let mut stdout = io::stdout().lock();
+
+    writeln!(
+        stdout,
         "repos:{}  dirty:{}  behind:{}  ahead:{}  time:{}ms  avg:{:.2}ms  focus:{}",
         total, dirty, behind, ahead, elapsed_ms, avg_repo_ms, focus
-    );
-    println!(
+    )
+    .wrap_err("failed to write output to stdout")?;
+    writeln!(
+        stdout,
         "{:<repo_col$}  {:<branch_col$}  {:>SYNC_COL$}  {:<STATE_COL$}  {:<NEXT_COL$}  {:<COMMIT_COL$}  path",
         fit_cell("repo", repo_col),
         fit_cell("branch", branch_col),
@@ -581,7 +587,8 @@ fn print_human(
         fit_cell("state", STATE_COL),
         fit_cell("next", NEXT_COL),
         fit_cell("last_commit", COMMIT_COL)
-    );
+    )
+    .wrap_err("failed to write output to stdout")?;
 
     for report in sorted {
         let status_text = if is_clean(&report) {
@@ -608,7 +615,8 @@ fn print_human(
             _ => String::from("no commits"),
         };
 
-        println!(
+        writeln!(
+            stdout,
             "{:<repo_col$}  {:<branch_col$}  {:>SYNC_COL$}  {:<STATE_COL$}  {:<NEXT_COL$}  {:<COMMIT_COL$}  {}",
             fit_cell(&report.name, repo_col),
             fit_cell(&branch_text, branch_col),
@@ -617,8 +625,11 @@ fn print_human(
             fit_cell(next_text, NEXT_COL),
             fit_cell(&commit_summary, COMMIT_COL),
             format_path_for_display(&report.path)
-        );
+        )
+        .wrap_err("failed to write output to stdout")?;
     }
+
+    Ok(())
 }
 
 fn column_width<F>(reports: &[RepoReport], label: &str, extract: F, min: usize, max: usize) -> usize
@@ -805,6 +816,14 @@ fn print_json(
 
     let output =
         serde_json::to_string_pretty(&payload).wrap_err("failed to serialize json output")?;
-    println!("{output}");
+    io::stdout()
+        .write_all(output.as_bytes())
+        .wrap_err("failed to write output to stdout")?;
+    io::stdout()
+        .write_all(b"\n")
+        .wrap_err("failed to write output to stdout")?;
+    io::stdout()
+        .flush()
+        .wrap_err("failed to flush stdout")?;
     Ok(())
 }
