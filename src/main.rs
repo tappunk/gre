@@ -296,7 +296,7 @@ fn repo_item_to_config(item: RepoItem) -> RepoConfig {
 
 fn expand_tilde(path: PathBuf) -> PathBuf {
     let as_text = path.to_string_lossy();
-    let resolved = if as_text == "~" {
+    if as_text == "~" {
         dirs::home_dir().unwrap_or(path)
     } else if let Some(stripped) = as_text.strip_prefix("~/")
         && let Some(home) = dirs::home_dir()
@@ -304,11 +304,7 @@ fn expand_tilde(path: PathBuf) -> PathBuf {
         home.join(stripped)
     } else {
         path
-    };
-
-    // Canonicalize to normalize trailing slashes, ., .. etc.
-    // Gracefully fall back to resolved path if it doesn't exist yet.
-    resolved.canonicalize().unwrap_or(resolved)
+    }
 }
 
 fn infer_name_from_path(path: &str) -> String {
