@@ -265,18 +265,14 @@ fn load_repositories(config_path: &Path) -> Result<(Vec<RepoConfig>, Option<Outp
 
     let mut kept: HashMap<PathBuf, String> = HashMap::new();
     repositories.retain(|repository| {
-        if kept
-            .insert(repository.path.clone(), repository.name.clone())
-            .is_some()
+        if let Some(kept_name) =
+            kept.insert(repository.path.clone(), repository.name.clone())
         {
-            let kept_name = kept
-                .get(&repository.path)
-                .map(String::as_str)
-                .unwrap_or("?");
             eprintln!(
-                "warning: duplicate path '{}' in config, keeping name '{}'",
+                "warning: duplicate path '{}' in config, keeping '{}' and dropping '{}'",
                 repository.path.display(),
-                kept_name
+                kept_name,
+                repository.name,
             );
             false
         } else {
