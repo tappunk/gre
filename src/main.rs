@@ -159,14 +159,14 @@ fn run() -> Result<()> {
         .collect();
 
     let mut ok_reports = Vec::new();
-    let mut repo_timings = Vec::new();
+    let mut ok_timings = Vec::new();
     let mut had_failure = false;
     let mut failed_total = 0usize;
 
     for (report, elapsed_repo) in reports {
-        repo_timings.push(elapsed_repo);
         match report {
             Ok(value) => {
+                ok_timings.push(elapsed_repo);
                 ok_reports.push(value);
             }
             Err(error) => {
@@ -184,7 +184,7 @@ fn run() -> Result<()> {
         print_json(
             &ok_reports,
             elapsed,
-            &repo_timings,
+            &ok_timings,
             repositories.len(),
             failed_total,
         )?;
@@ -731,7 +731,7 @@ fn percentile_repo_ms(samples: &[std::time::Duration], percentile: f64) -> f64 {
 fn print_json(
     reports: &[RepoReport],
     elapsed: std::time::Duration,
-    repo_timings: &[std::time::Duration],
+    ok_timings: &[std::time::Duration],
     configured_total: usize,
     failed_total: usize,
 ) -> Result<()> {
@@ -767,7 +767,7 @@ fn print_json(
         ahead: reports.iter().filter(|report| report.ahead > 0).count(),
         elapsed_ms: elapsed.as_millis() as u64,
         avg_repo_ms: average_repo_ms(reports.len(), elapsed),
-        p95_repo_ms: percentile_repo_ms(repo_timings, 0.95),
+        p95_repo_ms: percentile_repo_ms(ok_timings, 0.95),
     };
 
     let payload = JsonOutput {
