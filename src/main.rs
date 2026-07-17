@@ -41,6 +41,7 @@ struct InitArgs {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Config {
     repos: Option<Vec<RepoItem>>,
     repositories: Option<Vec<RepoItem>>,
@@ -50,6 +51,7 @@ struct Config {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 struct OutputConfig {
     default_json: Option<bool>,
 }
