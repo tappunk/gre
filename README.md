@@ -94,6 +94,7 @@ gre   main     +1 -0  dirty s:0 u:2 ?:0 c:0  commit-or-stash  8a3b2f1 tune outpu
 **Next action values:**
 
 - `resolve-conflicts` — has merge conflicts
+- `commit` — has staged changes ready to commit
 - `commit-or-stash` — has unstaged or untracked changes
 - `pull` — behind remote
 - `push` — ahead of remote

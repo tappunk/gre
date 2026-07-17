@@ -652,6 +652,9 @@ fn next_action(report: &RepoReport) -> &'static str {
     if report.conflicts > 0 {
         return "resolve-conflicts";
     }
+    if report.staged > 0 && report.unstaged == 0 && report.untracked == 0 {
+        return "commit";
+    }
     if !is_clean(report) {
         return "commit-or-stash";
     }
