@@ -106,27 +106,38 @@ gre   main     +1 -0  dirty s:0 u:2 ?:0 c:0  commit-or-stash  8a3b2f1 tune outpu
 
 ```json
 {
-  "schema_version": "1",
+  "schema_version": "2",
   "summary": {
-    "total": 2,
+    "configured_total": 2,
+    "succeeded_total": 2,
+    "failed_total": 0,
     "dirty": 1,
+    "behind": 0,
     "ahead": 1,
     "elapsed_ms": 42,
+    "avg_repo_ms": 21.0,
     "p95_repo_ms": 38.2
   },
   "repos": [
     {
       "name": "gre",
+      "path": "/Users/user/src/gre",
       "branch": "main",
       "ahead": 1,
       "behind": 0,
       "staged": 0,
-      "unstaged": 2
+      "unstaged": 2,
+      "untracked": 0,
+      "conflicts": 0,
+      "clean": false,
+      "last_hash": "8a3b2f1",
+      "last_subject": "tune output",
+      "last_relative": "2 hours ago"
     }
   ]
 }
 ```
 
-Full output includes additional repo fields (`last_hash`, `last_subject`, `last_relative`, `untracked`, `conflicts`, `clean`) and timing stats (`avg_repo_ms`, `failed_total`).
+`configured_total` equals `succeeded_total + failed_total`. Repo fields include `path`, `clean`, `last_hash`, `last_subject`, and `last_relative`.
 
 **Note:** gre does not fetch remotes. Run `git fetch` in your repos before running gre to refresh tracking refs.

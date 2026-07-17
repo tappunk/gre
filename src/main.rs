@@ -9,7 +9,7 @@ use git2::{BranchType, Repository, StatusOptions};
 use rayon::prelude::*;
 use serde::Deserialize;
 
-const JSON_SCHEMA_VERSION: &str = "1";
+const JSON_SCHEMA_VERSION: &str = "2";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -105,7 +105,6 @@ struct JsonSummary {
     configured_total: usize,
     succeeded_total: usize,
     failed_total: usize,
-    total: usize,
     dirty: usize,
     behind: usize,
     ahead: usize,
@@ -761,7 +760,6 @@ fn print_json(
         configured_total,
         succeeded_total: reports.len(),
         failed_total,
-        total: configured_total,
         dirty: reports.iter().filter(|report| !is_clean(report)).count(),
         behind: reports.iter().filter(|report| report.behind > 0).count(),
         ahead: reports.iter().filter(|report| report.ahead > 0).count(),
