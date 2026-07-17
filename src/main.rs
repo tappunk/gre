@@ -566,13 +566,7 @@ fn print_human(reports: &[RepoReport], elapsed: std::time::Duration) {
     );
 
     for report in sorted {
-        let clean = is_clean(&report);
-
-        let branch_text = report.branch.clone();
-        let sync_text = format!("+{} -{}", report.ahead, report.behind);
-        let next_text = next_action(&report);
-
-        let status_text = if clean {
+        let status_text = if is_clean(&report) {
             String::from("clean")
         } else {
             format!(
@@ -580,6 +574,10 @@ fn print_human(reports: &[RepoReport], elapsed: std::time::Duration) {
                 report.staged, report.unstaged, report.untracked, report.conflicts
             )
         };
+
+        let branch_text = report.branch.clone();
+        let sync_text = format!("+{} -{}", report.ahead, report.behind);
+        let next_text = next_action(&report);
 
         let commit_summary = match (
             &report.last_hash,
