@@ -704,7 +704,9 @@ fn format_path_for_display(path: &Path) -> String {
             if suffix.is_empty() {
                 return "~".to_string();
             }
-            return format!("~{}", suffix);
+            if suffix.starts_with('/') {
+                return format!("~{}", suffix);
+            }
         }
     }
     text
