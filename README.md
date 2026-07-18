@@ -61,9 +61,9 @@ Default path: `~/.config/gre/config.toml`
 
 ```toml
 paths = [
-  "~/src/gre",
-  "~/src/muthr",
-  "~/src/utmd",
+  "~/code/gre",
+  "~/code/muthr",
+  "~/code/utmd",
 ]
 ```
 
@@ -72,11 +72,11 @@ paths = [
 ```toml
 [[repos]]
 name = "gre"
-path = "~/src/gre"
+path = "~/code/gre"
 
 [[repos]]
 name = "muthr"
-path = "~/src/muthr"
+path = "~/code/muthr"
 ```
 
 ## Output Formats
@@ -88,7 +88,7 @@ gre sorts repos by action priority: conflicts → dirty → behind → ahead →
 ```
 repos:3  dirty:1  behind:1  ahead:1  time:12ms  avg:4.00ms  focus:gre:commit-or-stash,muthr:pull,utmd:none
 repo  branch  +sync  state  next  last_commit  path
-gre   main     +1 -0  dirty s:0 u:2 ?:0 c:0  commit-or-stash  8a3b2f1 tune output (2 hours ago)  ~/src/gre
+gre   main     +1 -0  dirty s:0 u:2 ?:0 c:0  commit-or-stash  8a3b2f1 tune output (2 hours ago)  ~/code/gre
 ```
 
 **Next action values:**
