@@ -5,9 +5,9 @@
 [![GitHub Release](https://img.shields.io/github/v/release/tappunk/gre?color=orange)](https://github.com/tappunk/gre/releases)
 [![X Follow](https://img.shields.io/twitter/follow/tappunk?style=social)](https://x.com/tappunk)
 
-# gre (experimental)
+# gre
 
-**Parallel git status aggregator for multiple repositories.** Human and JSON output for agent automation.
+**Parallel git status aggregator for multiple repositories.** Human and JSON output for agent automation. A personal tool for my own workflow, not a product. Expect breaking changes and best-effort maintenance.
 
 [Installation](#installation) • [Quick Start](#quick-start) • [Usage](#usage) • [Config](#config) • [Output Formats](#output-formats)
 
